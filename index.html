@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Attendance Monitoring</title>
+</head>
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+<style type="text/css">
+	.content {
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.content td, .content th {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.content tr:nth-child(even){background-color: #f2f2f2;}
+
+.content tr:hover {background-color: #ddd;}
+
+.content th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #4CAF50;
+  color: white;
+}
+.tab {
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: #f1f1f1;
+}
+
+.tab button {
+  background-color: inherit;
+  float: left;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 14px 16px;
+  transition: 0.3s;
+}
+
+.tab button:hover {
+  background-color: #ddd;
+}
+
+.tab button.active {
+  background-color: #ccc;
+}
+
+.tabcontent {
+  display: none;
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  border-top: none;
+}
+
+
+</style>
+
+<script type="text/javascript">
+	var Buckets;
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script type="text/javascript">
+
+	function getStudents() {
+		// body...
+		document.getElementById("studentstatusinnerdiv").innerHTML='';
+		var coursename=document.getElementById("mySelect").value;
+		var year=document.getElementById("years").value;
+		console.log(coursename);
+		console.log(year);
+		var url="http://127.0.0.1:5000/studentsList?course="+coursename+"&year="+year.toString();
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+			if (this.readyState == 4 && this.status == 200) {
+				var students=this.responseText;
+				studentsList=JSON.parse(students)["students"];
+				table_body='<table class="content">';
+				for (var i = studentsList.length - 1; i >= 0; i--) {
+					table_body+="<tr>";
+					table_body+="<td>"+studentsList[i]+"</td>";
+					table_body+="<td>";
+					table_body+='<input type='+'"radio"'+'value="present"'+'name='+'"'+studentsList[i]+'"'+'>'+'<label for='+'"'+studentsList[i]+'"'+'>'+" Present"+'</label>';
+					table_body+="</td>";
+					table_body+="<td>";
+					table_body+='<input type='+'"radio"'+'value="absent"'+'name='+'"'+studentsList[i]+'"'+'>'+'<label for='+'"'+studentsList[i]+'"'+'>'+" Absent"+'</label>';
+					table_body+="</td>";
+					table_body+="</tr>";
+				}
+				table_body+="</table>";
+				table_body+="<br><br><center><h4>Date</h4></center><br><br>";
+				table_body+='<input type="date" id="date" name="date" class="form-control"><br><br><br>';
+
+				table_body+='<input id="postattendancebutton" type="button" value="Upload" class="btn btn-primary" onclick="postattendance()">';
+				document.getElementById("studentstatusinnerdiv").innerHTML=table_body;
+				document.getElementById("getstudentsbutton").removeAttribute('disabled');
+			}
+			else if(this.readyState!=4 && this.readyState!=0){
+				document.getElementById("getstudentsbutton").disabled=true;
+               document.getElementById("studentstatusinnerdiv").innerHTML="<center><h3>Loading ...</h3></center>";   
+			}
+			else if(this.readyState==4 && this.status!=200){
+				document.getElementById("getstudentsbutton").removeAttribute('disabled');
+				document.getElementById("studentstatusinnerdiv").innerHTML="";   
+                alert("error try again");
+			}
+		};
+		xhttp.open("GET",url, true);
+		xhttp.send();
+
+	}
+
+	function getBuckets() {
+		var url="http://127.0.0.1:5000/bucketsList";
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+				var val=this.responseText;
+				console.log(JSON.parse(val)["Buckets"])
+			
+				for(var i=0;i<JSON.parse(val)["Buckets"].length;i++){
+					var op=document.createElement("option");
+					var op2=document.createElement("option");
+					op.value=JSON.parse(val)["Buckets"][i];
+					op.innerHTML=JSON.parse(val)["Buckets"][i];
+							op2.value=JSON.parse(val)["Buckets"][i];
+					op2.innerHTML=JSON.parse(val)["Buckets"][i];
+					document.getElementById("mySelect").appendChild(op);
+					document.getElementById("course2").appendChild(op2);
+				}
+			}
+			
+			else if(this.readyState==4 && this.status!=200){
+				
+                alert("error try again");
+			}
+		};
+		xhttp.open("GET",url, true);
+		xhttp.send();
+	}
+
+
+function getobjects(){
+		var course2=document.getElementById("course2")
+		var year2=document.getElementById("year2")
+		var yearvalue = year2.options[year2.selectedIndex].value;
+		var coursevalue = course2.options[course2.selectedIndex].value;
+		console.log(yearvalue);
+		console.log(coursevalue);
+		var tabletag=document.createElement('table');
+		tabletag.className ="content";
+		document.getElementById("response").innerHTML="";
+        var url="http://127.0.0.1:5000/objects?course="+coursevalue+"&year="+yearvalue.toString();
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			document.getElementById("response").innerHTML="";
+				var val=this.responseText;
+				var responsejson=JSON.parse(val);
+				for (let i = 0; i < Object.keys(responsejson).length; i++) {
+					var row=document.createElement('tr');
+					row.id=responsejson[i.toString()]["objectname"];
+					var tabledata=document.createElement('td');
+					var ptag=document.createElement('p');
+					ptag.innerHTML=responsejson[i.toString()]["objectname"]
+                    tabledata.appendChild(ptag);
+                    row.appendChild(tabledata);
+                    if(responsejson[i.toString()]["storageclass"]=="STANDARD"){
+                    	tabledata=document.createElement('td');
+                    	 var button = document.createElement("a");
+                    button.href="http://127.0.0.1:5000/download?coursename="+responsejson[i.toString()]["bucketname"]+"&filename="+responsejson[i.toString()]["objectname"];
+                    	 button.innerHTML="download"
+                    	 var idd=i.toString()+"-download";
+                    	 button.id=idd;
+                    	 button.className="btn btn-primary";
+                    	 tabledata.appendChild(button);
+                    	 row.appendChild(tabledata);
+                    	 tabledata=document.createElement('td');
+                          var button2 = document.createElement("button");
+                          button2.className="btn btn-primary";
+                          var iid=i.toString()+"-archive";
+                           button2.innerText ="ARCHIVE";
+                           button2.id=iid;
+                         button2.addEventListener("click", function() {
+                                 archiveobject(responsejson[i.toString()]["bucketname"],responsejson[i.toString()]["objectname"],iid);
+                        });
+                         tabledata.appendChild(button2);
+                         row.appendChild(tabledata);
+                         tabletag.appendChild(row);
+                    }
+                    else{
+
+                             if(responsejson[i.toString()]["restorestage"]=="no_request_made"){
+                                     tabledata=document.createElement('td');
+                             	   	var restorebutton=document.createElement("button")
+                    	           restorebutton.innerText ="RESTORE";
+                    	           var iid=i.toString()+"-restore";
+                    	           restorebutton.id=iid;
+                    	           restorebutton.className="btn btn-primary";
+                                  restorebutton.addEventListener("click", function() {
+                                 restoreobject(responsejson[i.toString()]["bucketname"],responsejson[i.toString()]["objectname"],iid);
+                               });
+
+                               tabledata.appendChild(restorebutton);
+                               row.appendChild(tabledata);
+
+
+                             }
+                             else if(responsejson[i.toString()]["restorestage"]=="restoring"){
+                             	 tabledata=document.createElement('td');
+                               var msg=document.createElement("i");
+                               msg.innerHTML="Restoring";
+                                tabledata.appendChild(msg);
+                                row.appendChild(tabledata);
+                               
+                             }
+                             else{
+                             	 tabledata=document.createElement('td');
+                             	var expirydate=document.createElement("i");
+                             	expirydate.innerHTML=responsejson[i.toString()]["expirydate"];
+                             	var downloadbutton = document.createElement("a");
+                             	downloadbutton.className="btn btn-primary";
+                                downloadbutton.href="http://127.0.0.1:5000/download?coursename="+responsejson[i.toString()]["bucketname"]+"&filename="+responsejson[i.toString()]["objectname"];
+                                downloadbutton.innerHTML="download";
+                                tabledata.appendChild(downloadbutton);
+                                row.appendChild(tabledata);
+                                 tabledata=document.createElement('td');
+                                 tabledata.appendChild(expirydate);
+                                 row.appendChild(tabledata);
+                             }
+
+                           tabletag.appendChild(row);
+
+                    }
+                  document.getElementById("getobjectsbutton").removeAttribute('disabled');
+                 document.getElementById("response").appendChild(tabletag);
+                 document.getElementById("response").appendChild(document.createElement('br'));
+}
+						}
+			else if(this.readyState!=4 && this.readyState!=0){
+				document.getElementById("getobjectsbutton").disabled=true;
+               document.getElementById("response").innerHTML="<center><h3>Loading ...</h3></center>";   
+			}
+			else if(this.readyState==4 && this.status!=200){
+				document.getElementById("getobjectsbutton").removeAttribute('disabled');
+				document.getElementById("response").innerHTML="";   
+                alert("error try again");
+			}
+
+		};
+
+		xhttp.open("GET",url, true);
+		xhttp.send();
+	   return false;	
+	}
+
+
+
+
+
+
+
+
+
+
+
+	function showContent(evt,tabname) {
+
+		  var tabcontent = document.getElementsByClassName("tabcontent");
+		  for (var i = 0; i < tabcontent.length; i++) {
+		    tabcontent[i].style.display = "none";
+		  }
+
+		  var tablinks = document.getElementsByClassName("tablinks");
+		  for (var i = 0; i < tablinks.length; i++) {
+		    tablinks[i].className = tablinks[i].className.replace(" active", "");
+		  }
+
+		  document.getElementById(tabname).style.display = "block";
+		  evt.currentTarget.className += " active";
+	}
+
+	     function restoreobject(bucketname,objectname,id){
+        console.log(id);
+        var url="http://127.0.0.1:5000/restore?objectname="+objectname+"&bucketname="+bucketname;
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			document.getElementById(objectname).innerHTML="";
+			var tabledata=document.createElement('td');
+					//console.log(responsejson[i.toString()])
+					var ptag=document.createElement('p');
+					//ptag.id=responsejson[i.toString()]["objectname"]
+					ptag.innerHTML=objectname;
+                    tabledata.appendChild(ptag);
+                    document.getElementById(objectname).appendChild(tabledata);
+			   tabledata=document.createElement('td');
+                               var msg=document.createElement("i");
+                               msg.innerHTML="Restoring";
+                                tabledata.appendChild(msg);
+                                
+                                document.getElementById(objectname).appendChild(tabledata);
+
+						}
+				else if(this.readyState!=4 && this.readyState!=0){
+			  //document.getElementById(id).disabled=true;		
+              //document.getElementById(id).innerHTML="Loading ...";   
+			}
+			else if(this.readyState==4 && this.status!=200){
+			//	document.getElementById(id).removeAttribute('disabled');
+			    	
+             // document.getElementById(id).innerHTML="RESTORE";   	
+                 alert("error try again");
+			}
+
+		};
+		
+		xhttp.open("GET",url, true);
+		xhttp.send();
+	   return false;	
+
+
+
+
+     }
+
+
+
+     function postattendance(){
+
+    
+        var form=document.getElementById("studentstatus");
+        var url="http://127.0.0.1:5000/upload";
+        var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+			     alert("upload successful");
+			     document.getElementById("postattendancebutton").removeAttribute('disabled');
+
+			}
+			else if(this.readyState!=4 && this.readyState!=0){
+               document.getElementById("postattendancebutton").disabled=true;
+               document.getElementById("postattendancebutton").innerHTML="loading...";
+			}
+
+			else if(this.readyState==4 && this.status!=200){
+			    document.getElementById("postattendancebutton").removeAttribute('disabled');	
+			    document.getElementById("postattendancebutton").innerHTML="Upload";
+                alert("error try again");
+			}
+				
+						
+
+		};
+		
+		xhttp.open("POST",url, true);
+		xhttp.send(new FormData(form));
+
+
+
+     }
+
+
+      function archiveobject(bucketname,objectname,id){
+       console.log(id);
+        var url="http://127.0.0.1:5000/archive?objectname="+objectname+"&bucketname="+bucketname;
+		var xhttp = new XMLHttpRequest();
+		xhttp.onreadystatechange = function() {
+		if (this.readyState == 4 && this.status == 200) {
+				//console.log(this.responseText);
+				var val=this.responseText;
+				var jsonresponse=(JSON.parse(val))
+				if("error" in jsonresponse==true){
+					alert("error restoring object")
+				}
+				else{
+					document.getElementById(objectname).innerHTML="";
+			        var tabledata=document.createElement('td');
+				
+					var ptag=document.createElement('p');
+				
+					ptag.innerHTML=objectname;
+                    tabledata.appendChild(ptag);
+                    document.getElementById(objectname).appendChild(tabledata);
+                               var  tabledata1=document.createElement('td');
+                             	   	var restorebutton=document.createElement("button")
+                    	           restorebutton.innerText ="RESTORE";
+                    	           var templist=id.split("-");
+                    	           id=templist[0]+"-restore";
+                    	           restorebutton.id=id
+                    	           restorebutton.className="btn btn-primary";
+                                  restorebutton.addEventListener("click", function() {
+                                 restoreobject(bucketname,objectname,id);
+                               });
+
+                               tabledata1.appendChild(restorebutton);
+                               
+                               document.getElementById(objectname).appendChild(tabledata1);
+				}
+
+			}
+				
+			else if(this.readyState!=4 && this.readyState!=0){
+				//document.getElementById(id).disabled=true;
+               //document.getElementById("studentstatusinnerdiv").innerHTML="<center><h3>Loading ...</h3></center>";   
+                 //document.getElementById(id).innerHTML="loading...";
+			}
+			else if(this.readyState==4 && this.status!=200){
+				//document.getElementById("studentstatusinnerdiv").innerHTML="";   
+				//document.getElementById(id).innerHTML="ARCHIVE";
+				//document.getElementById(id).disabled=false;
+                alert("error try again");
+			}			
+
+		};
+		
+		xhttp.open("GET",url, true);
+		xhttp.send();
+	   
+     }
+</script>
+
+
+<body>
+
+
+
+
+	<div class="tab">
+	  <button class="tablinks" onclick="showContent(event, 'put')">Post Attendance</button>
+	  <button class="tablinks" onclick="showContent(event, 'view')">View Attendance</button>
+	</div>
+
+	<div class="form">
+		<center>
+	<div id="put" class="tabcontent">
+
+
+
+<!--	<form action="http://127.0.0.1:5000/upload" method='POST'> -->
+		<!-- Service :<br><input type="text" name="Service"><br><br> -->
+<!-- 		<form action="http://127.0.0.1:5000/studentsList" method='POST'>
+
+ --><form id="studentstatus">
+ 		<h4>Select Course</h4><br>
+
+        <br><br>
+	     	<select id="mySelect" class="form-control" name="course"></select>
+	 
+	    	<script type="text/javascript">
+		getBuckets()
+	    </script>
+
+
+			<br><br><h4>Year</h4><br>
+			<select id="years" class="form-control" name="year">
+				<br><br>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			</select><br><br>
+			<!-- <h4>Choose File</h4><br>
+			<input type="file" id="file" name="FileName" class="form-control"><br> -->
+			<input id="getstudentsbutton" type="button" value="List Students" class="btn btn-primary" onclick="getStudents()">
+			<br>
+			<br>
+
+<!-- 		</form> -->
+		<div id="studentstatusinnerdiv"></div>
+		
+	</form>
+
+
+
+	</div>
+
+
+
+	<div id="view" class="tabcontent">
+	<form method="GET" action="/objects" onsubmit="return false;">
+		<!-- Service :<br><input type="text" name="Service"><br> -->
+		<h4>Select Course</h4><br>
+		<br><br>
+		<select id="course2" class="form-control"></select>
+				<br><br><h4>Year</h4><br><br>
+		<select class="form-control" id="year2">
+		<option value="1">1</option>
+		<option value="2">2</option>
+		<option value="3">3</option>
+		<option value="4">4</option>
+		</select><br><br>
+		<button class="btn btn-primary" onclick="getobjects()" id="getobjectsbutton">view list</button>
+		<br>
+		<br>
+		
+		</form>
+		<div id="response"></div>
+	</center>
+	
+	</div>
+</div>
+</body>
+</html>
